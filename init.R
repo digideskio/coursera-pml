@@ -6,9 +6,9 @@ library(Hmisc);
 library(rattle);
 library(rpart);
 
-#library(doParallel)
-#cl <- makeCluster(detectCores())
-#registerDoParallel(cl)
+library(doParallel)
+cl <- makeCluster(detectCores())
+registerDoParallel(cl)
 
 set.seed(3433)
 
