@@ -6,11 +6,13 @@ library(Hmisc);
 library(rattle);
 library(rpart);
 
-library(doParallel)
-cl <- makeCluster(detectCores())
-registerDoParallel(cl)
+#library(doParallel)
+#cl <- makeCluster(detectCores())
+#registerDoParallel(cl)
 
 set.seed(3433)
+
+options( StringsAsFactors=F )
 
 pml.training <- read.csv("pml-training.csv")
 pml.testing <- read.csv("pml-testing.csv")
