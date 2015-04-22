@@ -1,18 +1,3 @@
-setwd("~/rspective/ML/kaggle_old/pml")
-
-library(ggplot2)
-library(caret)
-library(Hmisc)
-
-library(doParallel)
-cl <- makeCluster(detectCores())
-registerDoParallel(cl)
-
-set.seed(3433)
-
-pml.training <- read.csv("pml-training.csv")
-pml.testing <- read.csv("pml-testing.csv")
-
 #str(pml.training)
 #table(pml.training$classe)
 #prop.table(table(pml.training$new_window))

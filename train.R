@@ -1,8 +1,3 @@
-library(rattle);
-library(rpart);
-
-set.seed(3433);
-
 target <- "Survived";
 #features <- c("Fare", "Pclass", "Title", "AgeFill", "Sex", "Level", "Embarked", "Family"); 
 features <- c("Fare", "Class_1", "Class_2", "Class_3", "Sex", "AgeFill" ); 
