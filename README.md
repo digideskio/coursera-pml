@@ -203,7 +203,7 @@ But none of them yields results as good as the pure `rf`. So, I'll stick with th
 
 Variable importance plot shows that row_belt, pitch_forearm, yaw_belt and pitch_belt have the most impact on the predictions.
 
-[!image](./varImp.png)
+![variable importance](./varImp.png?raw=true)
 
 Out of pure curiousity, I ran the training and predictions taking into consideration only 7 the most influential features:
 
