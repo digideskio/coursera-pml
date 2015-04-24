@@ -188,6 +188,8 @@ Detection Prevalence   0.2853   0.1919   0.1782   0.1621   0.1825
 Balanced Accuracy      0.9984   0.9915   0.9929   0.9871   0.9972
 ```
 
+### Other algorithms
+
 Later on I ran a bunch of tests with other models and parameters, e.g.:
 
 * Random Forests with PCA preprocessing,
@@ -197,5 +199,21 @@ Later on I ran a bunch of tests with other models and parameters, e.g.:
 
 But none of them yields results as good as the pure `rf`. So, I'll stick with that.
 
+### Variable importance
+
+Variable importance plot shows that row_belt, pitch_forearm, yaw_belt and pitch_belt have the most impact on the predictions.
+
+[!image](./varImp.png)
+
+Out of pure curiousity, I ran the training and predictions taking into consideration only 7 the most influential features:
+
+```R
+xs <- c("roll_belt", "pitch_forearm", "yaw_belt", "pitch_belt", "roll_forearm", "magnet_dumbbell_y", "magnet_dumbbell_z")
+```
+
+Interestingly, the accuracy on CV turned out to be 98%, which is 1% less than with all 52 features.
+
 ## Conclusion
+
+I seem to have got very decent results just by following the intuition and keeping things as simple as possible. At the beginning, when I was manually going through the data and analysing, I had a couple of ideas in the back of my head - e.g. including the rows with `new_window=yes` as a separate model, adding a fatigue feature (based on time passed since the beginning of excercising), but in the end I managed to get 99% estimated accuracy (based on cross validation) without actually implementing any of that.
 
