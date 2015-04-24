@@ -90,7 +90,112 @@ xs
 
 ## Training model
 
-Since it's a classification problem, not all algorithms will fit.
+Since it's a classification problem, not all algorithms will fit. From my previous experience (e.g. kaggle competitions) Random Forests proved to be the most efficient for classification problems - so I'll start with that.
+
+As usual - we need to know whether our model works and what level of accuracy we can get. For this purpose we apply cross validation, partitioning the dataset at 70% training and 30% testing.
+
+```R
+inTrain  <- createDataPartition(train[, y], p = 0.7, list=FALSE);
+training <- train[inTrain, c(y, xs)];
+testing  <- train[-inTrain, c(y, xs)];
+
+model <- train(classe ~ ., data = training, method = "rf", trControl = trainControl(method="cv"), numbers=3);
+
+predictions <- predict(model, testing);
+confusionMatrix(predictions, testing[, y]);
+
+# variable importance
+plot(varImp(model, scale = FALSE))
+```
+
+This gives very high accuracy already, much higher than the 'good-enough' level around 80%.
+
+```R
+> model
+Random Forest 
+
+13453 samples
+   52 predictor
+    5 classes: 'A', 'B', 'C', 'D', 'E' 
+
+No pre-processing
+Resampling: Cross-Validated (10 fold) 
+
+Summary of sample sizes: 12109, 12107, 12107, 12107, 12106, 12108, ... 
+
+Resampling results across tuning parameters:
+
+  mtry  Accuracy   Kappa      Accuracy SD  Kappa SD   
+   2    0.9911618  0.9888175  0.002509612  0.003176747
+  27    0.9913587  0.9890679  0.002350200  0.002973651
+  52    0.9849896  0.9810093  0.007077471  0.008957960
+
+Accuracy was used to select the optimal model using  the largest value.
+The final value used for the model was mtry = 27. 
+>
+> model$finalModel
+
+Call:
+ randomForest(x = x, y = y, mtry = param$mtry, numbers = 3) 
+               Type of random forest: classification
+                     Number of trees: 500
+No. of variables tried at each split: 27
+
+        OOB estimate of  error rate: 0.71%
+Confusion matrix:
+     A    B    C    D    E class.error
+A 3823    4    1    0    2 0.001827676
+B   17 2577    9    0    0 0.009988475
+C    0    9 2330    8    0 0.007243289
+D    0    1   31 2169    2 0.015433500
+E    0    0    4    8 2458 0.004858300
+```
+
+Confusion matrix:
+
+```R
+> cm
+Confusion Matrix and Statistics
+
+          Reference
+Prediction    A    B    C    D    E
+         A 1638    6    0    0    0
+         B    3 1098    5    0    0
+         C    0    5  997   22    3
+         D    0    6    3  922    3
+         E    0    0    0    0 1052
+
+Overall Statistics
+                                          
+               Accuracy : 0.9903          
+                 95% CI : (0.9874, 0.9927)
+    No Information Rate : 0.2847          
+    P-Value [Acc > NIR] : < 2.2e-16       
+                                          
+                  Kappa : 0.9877          
+ Mcnemar's Test P-Value : NA              
+
+Statistics by Class:
+
+                     Class: A Class: B Class: C Class: D Class: E
+Sensitivity            0.9982   0.9848   0.9920   0.9767   0.9943
+Specificity            0.9985   0.9983   0.9937   0.9975   1.0000
+Pos Pred Value         0.9964   0.9928   0.9708   0.9872   1.0000
+Neg Pred Value         0.9993   0.9963   0.9983   0.9954   0.9987
+Prevalence             0.2847   0.1935   0.1744   0.1638   0.1836
+Detection Rate         0.2842   0.1905   0.1730   0.1600   0.1825
+Detection Prevalence   0.2853   0.1919   0.1782   0.1621   0.1825
+Balanced Accuracy      0.9984   0.9915   0.9929   0.9871   0.9972
+```
+
+Later on I ran a bunch of tests with other models and parameters, e.g.:
+
+* Random Forests with PCA preprocessing,
+* R-Part with PCA
+* LDA2 with PCA
+* PAM with PCA
+
+But none of them yields results as good as the pure `rf`. So, I'll stick with that.
 
 ## Conclusion
 

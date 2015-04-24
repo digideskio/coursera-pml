@@ -19,6 +19,19 @@ plot(varImp(model, scale = FALSE))
 
 save(model, file="model_rf_cv_3_0.7.rda")
 
+
+# submitting answers
+pml_write_files = function(x) {
+  n = length(x)
+  for (i in 1:n) {
+    filename = paste0("problem_id_", i, ".txt")
+    write.table(x[i], file = filename, quote = FALSE, row.names = FALSE, col.names = FALSE)
+  }
+}
+
+answers <- predict(model, test);
+pml_write_files(answers)
+
 # rf + trControl=cv + numbers=3
 #0.2  => 1m,  0.97 accuracy, prediction 0.97
 #0.7  => 15m, 0.99 accuracy, prediction 0.99
