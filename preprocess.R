@@ -14,15 +14,15 @@
 
 y <- c("classe")
 # discard features that don't seem valuable
-xs <- setdiff(colnames(pml.training), c("new_window", "num_window", "raw_timestamp_part_1", "raw_timestamp_part_2", "cvtd_timestamp", "classe"))
+xs <- setdiff(colnames(pml.training), c("X", "user_name", "new_window", "num_window", "raw_timestamp_part_1", "raw_timestamp_part_2", "cvtd_timestamp", "classe"))
 
+# remove the summary rows
 filterRows <- function(ds) {
   ds[ds$new_window == "no",];
 }
 
 train <- filterRows(pml.training);
 test <- filterRows(pml.testing);
-
 
 # drop columns that are mostly empty (NA, empty string or #DIV/0!)
 mostlyEmpty <- sapply(xs, function(x) sum(is.na(train[, x]) | train[, x] == "" | train[, x] == "#DIV/0!") > 0.75 * nrow(train))
