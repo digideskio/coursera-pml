@@ -1,16 +1,27 @@
-inTrain  <- createDataPartition(train[, y], p = 0.2, list=FALSE);
+inTrain  <- createDataPartition(train[, y], p = 0.7, list=FALSE);
 training <- train[inTrain, c(y, xs)];
 testing  <- train[-inTrain, c(y, xs)];
 
-model <- train(classe ~ ., data = training, method = "rf", preProcess = "pca", trControl = trainControl(method="cv"), numbers=3);
+model <- train(classe ~ ., data = training, method = "rf", trControl = trainControl(method="cv"), numbers=3);
 # model <- train(classe ~ ., data = training, method = "pam", preProcess = "pca");
 
 # RPART
-model <- rpart(classe ~ ., data=training);
-fancyRpartPlot(model);
+# model <- rpart(classe ~ ., data=training);
+# fancyRpartPlot(model);
+
 
 predictions <- predict(model, testing);
 cm <- confusionMatrix(predictions, testing[, y]);
+cm
+
+# variable importance
+plot(varImp(model, scale = FALSE))
+
+save(model, file="model_rf_cv_3_0.7.rda")
+
+# rf + trControl=cv + numbers=3
+#0.2  => 1m,  0.97 accuracy, prediction 0.97
+#0.7  => 15m, 0.99 accuracy, prediction 0.99
 
 # rf + pca
 #0.05 => 30s, 0.73 accuracy
