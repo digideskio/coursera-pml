@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>Coursera-pml by pawelrychlik</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">Coursera-pml</h1>
+      <h2 class="project-tagline">Practical Machine Learning with coursera</h2>
+      <a href="https://github.com/pawelrychlik/coursera-pml" class="btn">View on GitHub</a>
+      <a href="https://github.com/pawelrychlik/coursera-pml/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/pawelrychlik/coursera-pml/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <h1>
+<a id="coursera-pml" class="anchor" href="#coursera-pml" aria-hidden="true"><span class="octicon octicon-link"></span></a>coursera-pml</h1>
+
+<p>Practical Machine Learning with coursera</p>
+
+<h2>
+<a id="data-analysis" class="anchor" href="#data-analysis" aria-hidden="true"><span class="octicon octicon-link"></span></a>Data analysis</h2>
+
+<p>We begin with analysing the data manually. The training dataset contains 19.622 observations of 160 variables. The test dataset consists of 20 rows.</p>
+
+<p>The output parameter is named <code>classe</code> and is a factor with 5 values.</p>
+
+<div class="highlight highlight-R"><pre><span class="pl-k">&gt;</span> str(<span class="pl-smi">train</span><span class="pl-k">$</span><span class="pl-smi">classe</span>)
+ <span class="pl-smi">Factor</span> <span class="pl-smi">w</span><span class="pl-k">/</span> <span class="pl-c1">5</span> <span class="pl-smi">levels</span> <span class="pl-s"><span class="pl-pds">"</span>A<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>B<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>C<span class="pl-pds">"</span></span>,<span class="pl-s"><span class="pl-pds">"</span>D<span class="pl-pds">"</span></span>,..<span class="pl-k">:</span> <span class="pl-c1">1</span> <span class="pl-c1">1</span> <span class="pl-c1">1</span> <span class="pl-c1">1</span> <span class="pl-c1">1</span> <span class="pl-c1">1</span> <span class="pl-c1">1</span> <span class="pl-c1">1</span> <span class="pl-c1">1</span> <span class="pl-c1">1</span> <span class="pl-k">...</span>
+<span class="pl-k">&gt;</span> summary(<span class="pl-smi">train</span><span class="pl-k">$</span><span class="pl-smi">classe</span>)
+   <span class="pl-smi">A</span>    <span class="pl-smi">B</span>    <span class="pl-smi">C</span>    <span class="pl-smi">D</span>    <span class="pl-smi">E</span> 
+<span class="pl-c1">5471</span> <span class="pl-c1">3718</span> <span class="pl-c1">3352</span> <span class="pl-c1">3147</span> <span class="pl-c1">3528</span> </pre></div>
+
+<p>Just looking at the data, there seems to be quite a lot of empty cells and NAs. Good - we'll be able to trim down the number of colums before we actually feed the data to the training algorithms.</p>
+
+<p>Another interesting observation is that every ~24 rows there seems to be some kind of a summary row copy-pasted from excel - it has string values of <code>#DIV/0!</code>, and in general it has very different data than the <em>regular</em> rows - it's marked with <code>new_window=yes</code>. This makes me think that it would be wise to divide the data into two parts based on the <code>new_window</code> column values. Furthermore we could try to build two separate models for the two parts. But for now, since it's only ~400 rows out of 19k (unnecessary clutter?), we'll skip these rows in the processing.</p>
+
+<div class="highlight highlight-R"><pre>table(<span class="pl-smi">pml.training</span><span class="pl-k">$</span><span class="pl-smi">new_window</span>)
+
+   <span class="pl-smi">no</span>   <span class="pl-smi">yes</span> 
+<span class="pl-c1">19216</span>   <span class="pl-c1">406</span> </pre></div>
+
+<p>Column <code>X</code> is just an ID, so it won't be used as a feature.</p>
+
+<p>Column <code>user_name</code> is a factor with 6 values. The assignment is about analysing whether a physical excercise is performed correctly or incorrectly, and classifying the type of errors. Although we could use this feature as the test set has exactly the same factors for this column, the algorithm shouldn't be dependent on the <code>user_name</code> of the person doing excercises, should be able to predict independently of who does the excercises.</p>
+
+<div class="highlight highlight-R"><pre>table(<span class="pl-smi">pml.training</span><span class="pl-k">$</span><span class="pl-smi">user_name</span>)
+
+  <span class="pl-smi">adelmo</span> <span class="pl-smi">carlitos</span>  <span class="pl-smi">charles</span>   <span class="pl-smi">eurico</span>   <span class="pl-smi">jeremy</span>    <span class="pl-smi">pedro</span> 
+    <span class="pl-c1">3892</span>     <span class="pl-c1">3112</span>     <span class="pl-c1">3536</span>     <span class="pl-c1">3070</span>     <span class="pl-c1">3402</span>     <span class="pl-c1">2610</span> </pre></div>
+
+<p>There are three timestamp columns, that we might consider. Idea - figure out for how long the person has been excercising already - maybe there's a correlation: fatigue vs error type.</p>
+
+<p><code>num_window</code> seems to be some metadata related to the capturing devices. Discarding.</p>
+
+<p>Now there seem to be a lot of columns related to the sensor measurements - still there's so many columns it's hard to go thru them all an filter manually. The general intuition is that we should be using features related to <code>arm</code>s, <code>belt</code>s, <code>dumbbell</code>s and <code>forearm</code>s. The rest of columns look promising for training models and running predictions.</p>
+
+<h2>
+<a id="data-preprocessing--feature-selection" class="anchor" href="#data-preprocessing--feature-selection" aria-hidden="true"><span class="octicon octicon-link"></span></a>Data preprocessing &amp; Feature selection</h2>
+
+<p>We begin with the low-hanging fruits. Let's follow the intuition, let's run some naive preprocessing to clean the data, and see what kind of results we get out of it.</p>
+
+<p>Regarding the cleaning - I decided to follow the approach of discarding all columns that have more than 75% empty cells (empty means <code>''</code>, <code>NA</code> or <code>#DIV/0!</code>). Most probably, these columns won't add much value to the final output.</p>
+
+<div class="highlight highlight-R"><pre><span class="pl-smi">y</span> <span class="pl-k">&lt;-</span> c(<span class="pl-s"><span class="pl-pds">"</span>classe<span class="pl-pds">"</span></span>)
+<span class="pl-c"># discard features that don't seem valuable</span>
+<span class="pl-smi">xs</span> <span class="pl-k">&lt;-</span> setdiff(colnames(<span class="pl-smi">pml.training</span>), c(<span class="pl-s"><span class="pl-pds">"</span>X<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>user_name<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>new_window<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>num_window<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>raw_timestamp_part_1<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>raw_timestamp_part_2<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>cvtd_timestamp<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>classe<span class="pl-pds">"</span></span>))
+
+<span class="pl-c"># remove the summary rows</span>
+<span class="pl-en">filterRows</span> <span class="pl-k">&lt;-</span> <span class="pl-k">function</span>(<span class="pl-smi">ds</span>) {
+  <span class="pl-smi">ds</span>[<span class="pl-smi">ds</span><span class="pl-k">$</span><span class="pl-smi">new_window</span> <span class="pl-k">==</span> <span class="pl-s"><span class="pl-pds">"</span>no<span class="pl-pds">"</span></span>,];
+}
+
+<span class="pl-smi">train</span> <span class="pl-k">&lt;-</span> filterRows(<span class="pl-smi">pml.training</span>);
+<span class="pl-smi">test</span> <span class="pl-k">&lt;-</span> filterRows(<span class="pl-smi">pml.testing</span>);
+
+<span class="pl-c"># drop columns that are mostly empty (NA, empty string or #DIV/0!)</span>
+<span class="pl-smi">mostlyEmpty</span> <span class="pl-k">&lt;-</span> sapply(<span class="pl-smi">xs</span>, <span class="pl-k">function</span>(<span class="pl-smi">x</span>) sum(is.na(<span class="pl-smi">train</span>[, <span class="pl-smi">x</span>]) <span class="pl-k">|</span> <span class="pl-smi">train</span>[, <span class="pl-smi">x</span>] <span class="pl-k">==</span> <span class="pl-s"><span class="pl-pds">"</span><span class="pl-pds">"</span></span> <span class="pl-k">|</span> <span class="pl-smi">train</span>[, <span class="pl-smi">x</span>] <span class="pl-k">==</span> <span class="pl-s"><span class="pl-pds">"</span>#DIV/0!<span class="pl-pds">"</span></span>) <span class="pl-k">&gt;</span> <span class="pl-c1">0.75</span> <span class="pl-k">*</span> nrow(<span class="pl-smi">train</span>))
+<span class="pl-smi">xs</span> <span class="pl-k">&lt;-</span> <span class="pl-smi">xs</span>[<span class="pl-k">!</span><span class="pl-smi">mostlyEmpty</span>]
+
+<span class="pl-smi">train</span> <span class="pl-k">&lt;-</span> <span class="pl-smi">train</span>[,c(<span class="pl-smi">xs</span>, <span class="pl-smi">y</span>)]
+<span class="pl-smi">test</span> <span class="pl-k">&lt;-</span> <span class="pl-smi">test</span>[,c(<span class="pl-smi">xs</span>)]</pre></div>
+
+<p>At this point, the numbers of potential features fell from 160 to 52. Seems like we just discarded a lot of crap :).</p>
+
+<div class="highlight highlight-R"><pre><span class="pl-smi">xs</span>
+ [<span class="pl-c1">1</span>] <span class="pl-s"><span class="pl-pds">"</span>roll_belt<span class="pl-pds">"</span></span>            <span class="pl-s"><span class="pl-pds">"</span>pitch_belt<span class="pl-pds">"</span></span>           <span class="pl-s"><span class="pl-pds">"</span>yaw_belt<span class="pl-pds">"</span></span>             <span class="pl-s"><span class="pl-pds">"</span>total_accel_belt<span class="pl-pds">"</span></span>     <span class="pl-s"><span class="pl-pds">"</span>gyros_belt_x<span class="pl-pds">"</span></span>        
+ [<span class="pl-c1">6</span>] <span class="pl-s"><span class="pl-pds">"</span>gyros_belt_y<span class="pl-pds">"</span></span>         <span class="pl-s"><span class="pl-pds">"</span>gyros_belt_z<span class="pl-pds">"</span></span>         <span class="pl-s"><span class="pl-pds">"</span>accel_belt_x<span class="pl-pds">"</span></span>         <span class="pl-s"><span class="pl-pds">"</span>accel_belt_y<span class="pl-pds">"</span></span>         <span class="pl-s"><span class="pl-pds">"</span>accel_belt_z<span class="pl-pds">"</span></span>        
+[<span class="pl-c1">11</span>] <span class="pl-s"><span class="pl-pds">"</span>magnet_belt_x<span class="pl-pds">"</span></span>        <span class="pl-s"><span class="pl-pds">"</span>magnet_belt_y<span class="pl-pds">"</span></span>        <span class="pl-s"><span class="pl-pds">"</span>magnet_belt_z<span class="pl-pds">"</span></span>        <span class="pl-s"><span class="pl-pds">"</span>roll_arm<span class="pl-pds">"</span></span>             <span class="pl-s"><span class="pl-pds">"</span>pitch_arm<span class="pl-pds">"</span></span>           
+[<span class="pl-c1">16</span>] <span class="pl-s"><span class="pl-pds">"</span>yaw_arm<span class="pl-pds">"</span></span>              <span class="pl-s"><span class="pl-pds">"</span>total_accel_arm<span class="pl-pds">"</span></span>      <span class="pl-s"><span class="pl-pds">"</span>gyros_arm_x<span class="pl-pds">"</span></span>          <span class="pl-s"><span class="pl-pds">"</span>gyros_arm_y<span class="pl-pds">"</span></span>          <span class="pl-s"><span class="pl-pds">"</span>gyros_arm_z<span class="pl-pds">"</span></span>         
+[<span class="pl-c1">21</span>] <span class="pl-s"><span class="pl-pds">"</span>accel_arm_x<span class="pl-pds">"</span></span>          <span class="pl-s"><span class="pl-pds">"</span>accel_arm_y<span class="pl-pds">"</span></span>          <span class="pl-s"><span class="pl-pds">"</span>accel_arm_z<span class="pl-pds">"</span></span>          <span class="pl-s"><span class="pl-pds">"</span>magnet_arm_x<span class="pl-pds">"</span></span>         <span class="pl-s"><span class="pl-pds">"</span>magnet_arm_y<span class="pl-pds">"</span></span>        
+[<span class="pl-c1">26</span>] <span class="pl-s"><span class="pl-pds">"</span>magnet_arm_z<span class="pl-pds">"</span></span>         <span class="pl-s"><span class="pl-pds">"</span>roll_dumbbell<span class="pl-pds">"</span></span>        <span class="pl-s"><span class="pl-pds">"</span>pitch_dumbbell<span class="pl-pds">"</span></span>       <span class="pl-s"><span class="pl-pds">"</span>yaw_dumbbell<span class="pl-pds">"</span></span>         <span class="pl-s"><span class="pl-pds">"</span>total_accel_dumbbell<span class="pl-pds">"</span></span>
+[<span class="pl-c1">31</span>] <span class="pl-s"><span class="pl-pds">"</span>gyros_dumbbell_x<span class="pl-pds">"</span></span>     <span class="pl-s"><span class="pl-pds">"</span>gyros_dumbbell_y<span class="pl-pds">"</span></span>     <span class="pl-s"><span class="pl-pds">"</span>gyros_dumbbell_z<span class="pl-pds">"</span></span>     <span class="pl-s"><span class="pl-pds">"</span>accel_dumbbell_x<span class="pl-pds">"</span></span>     <span class="pl-s"><span class="pl-pds">"</span>accel_dumbbell_y<span class="pl-pds">"</span></span>    
+[<span class="pl-c1">36</span>] <span class="pl-s"><span class="pl-pds">"</span>accel_dumbbell_z<span class="pl-pds">"</span></span>     <span class="pl-s"><span class="pl-pds">"</span>magnet_dumbbell_x<span class="pl-pds">"</span></span>    <span class="pl-s"><span class="pl-pds">"</span>magnet_dumbbell_y<span class="pl-pds">"</span></span>    <span class="pl-s"><span class="pl-pds">"</span>magnet_dumbbell_z<span class="pl-pds">"</span></span>    <span class="pl-s"><span class="pl-pds">"</span>roll_forearm<span class="pl-pds">"</span></span>        
+[<span class="pl-c1">41</span>] <span class="pl-s"><span class="pl-pds">"</span>pitch_forearm<span class="pl-pds">"</span></span>        <span class="pl-s"><span class="pl-pds">"</span>yaw_forearm<span class="pl-pds">"</span></span>          <span class="pl-s"><span class="pl-pds">"</span>total_accel_forearm<span class="pl-pds">"</span></span>  <span class="pl-s"><span class="pl-pds">"</span>gyros_forearm_x<span class="pl-pds">"</span></span>      <span class="pl-s"><span class="pl-pds">"</span>gyros_forearm_y<span class="pl-pds">"</span></span>     
+[<span class="pl-c1">46</span>] <span class="pl-s"><span class="pl-pds">"</span>gyros_forearm_z<span class="pl-pds">"</span></span>      <span class="pl-s"><span class="pl-pds">"</span>accel_forearm_x<span class="pl-pds">"</span></span>      <span class="pl-s"><span class="pl-pds">"</span>accel_forearm_y<span class="pl-pds">"</span></span>      <span class="pl-s"><span class="pl-pds">"</span>accel_forearm_z<span class="pl-pds">"</span></span>      <span class="pl-s"><span class="pl-pds">"</span>magnet_forearm_x<span class="pl-pds">"</span></span>    
+[<span class="pl-c1">51</span>] <span class="pl-s"><span class="pl-pds">"</span>magnet_forearm_y<span class="pl-pds">"</span></span>     <span class="pl-s"><span class="pl-pds">"</span>magnet_forearm_z<span class="pl-pds">"</span></span>    </pre></div>
+
+<h2>
+<a id="training-model" class="anchor" href="#training-model" aria-hidden="true"><span class="octicon octicon-link"></span></a>Training model</h2>
+
+<p>Since it's a classification problem, not all algorithms will fit. From my previous experience (e.g. kaggle competitions) Random Forests proved to be the most efficient for classification problems - so I'll start with that.</p>
+
+<p>As usual - we need to know whether our model works and what level of accuracy we can get. For this purpose we apply cross validation, partitioning the dataset at 70% training and 30% testing.</p>
+
+<div class="highlight highlight-R"><pre><span class="pl-smi">inTrain</span>  <span class="pl-k">&lt;-</span> createDataPartition(<span class="pl-smi">train</span>[, <span class="pl-smi">y</span>], <span class="pl-v">p</span> <span class="pl-k">=</span> <span class="pl-c1">0.7</span>, <span class="pl-v">list</span><span class="pl-k">=</span><span class="pl-c1">FALSE</span>);
+<span class="pl-smi">training</span> <span class="pl-k">&lt;-</span> <span class="pl-smi">train</span>[<span class="pl-smi">inTrain</span>, c(<span class="pl-smi">y</span>, <span class="pl-smi">xs</span>)];
+<span class="pl-smi">testing</span>  <span class="pl-k">&lt;-</span> <span class="pl-smi">train</span>[<span class="pl-k">-</span><span class="pl-smi">inTrain</span>, c(<span class="pl-smi">y</span>, <span class="pl-smi">xs</span>)];
+
+<span class="pl-smi">model</span> <span class="pl-k">&lt;-</span> train(<span class="pl-smi">classe</span> <span class="pl-k">~</span> ., <span class="pl-v">data</span> <span class="pl-k">=</span> <span class="pl-smi">training</span>, <span class="pl-v">method</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>rf<span class="pl-pds">"</span></span>, <span class="pl-v">trControl</span> <span class="pl-k">=</span> trainControl(<span class="pl-v">method</span><span class="pl-k">=</span><span class="pl-s"><span class="pl-pds">"</span>cv<span class="pl-pds">"</span></span>), <span class="pl-v">numbers</span><span class="pl-k">=</span><span class="pl-c1">3</span>);
+
+<span class="pl-smi">predictions</span> <span class="pl-k">&lt;-</span> predict(<span class="pl-smi">model</span>, <span class="pl-smi">testing</span>);
+confusionMatrix(<span class="pl-smi">predictions</span>, <span class="pl-smi">testing</span>[, <span class="pl-smi">y</span>]);
+
+<span class="pl-c"># variable importance</span>
+plot(varImp(<span class="pl-smi">model</span>, <span class="pl-v">scale</span> <span class="pl-k">=</span> <span class="pl-c1">FALSE</span>))</pre></div>
+
+<p>This gives very high accuracy already, much higher than the 'good-enough' level around 80%.</p>
+
+<div class="highlight highlight-R"><pre><span class="pl-k">&gt;</span> <span class="pl-smi">model</span>
+<span class="pl-smi">Random</span> <span class="pl-smi">Forest</span> 
+
+<span class="pl-c1">13453</span> <span class="pl-smi">samples</span>
+   <span class="pl-c1">52</span> <span class="pl-smi">predictor</span>
+    <span class="pl-c1">5</span> <span class="pl-smi">classes</span><span class="pl-k">:</span> <span class="pl-s"><span class="pl-pds">'</span>A<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>B<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>C<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>D<span class="pl-pds">'</span></span>, <span class="pl-s"><span class="pl-pds">'</span>E<span class="pl-pds">'</span></span> 
+
+<span class="pl-smi">No</span> <span class="pl-smi">pre</span><span class="pl-k">-</span><span class="pl-smi">processing</span>
+<span class="pl-smi">Resampling</span><span class="pl-k">:</span> <span class="pl-smi">Cross</span><span class="pl-k">-</span>Validated (<span class="pl-c1">10</span> <span class="pl-smi">fold</span>) 
+
+<span class="pl-smi">Summary</span> <span class="pl-smi">of</span> <span class="pl-smi">sample</span> <span class="pl-smi">sizes</span><span class="pl-k">:</span> <span class="pl-c1">12109</span>, <span class="pl-c1">12107</span>, <span class="pl-c1">12107</span>, <span class="pl-c1">12107</span>, <span class="pl-c1">12106</span>, <span class="pl-c1">12108</span>, <span class="pl-k">...</span> 
+
+<span class="pl-smi">Resampling</span> <span class="pl-smi">results</span> <span class="pl-smi">across</span> <span class="pl-smi">tuning</span> <span class="pl-smi">parameters</span><span class="pl-k">:</span>
+
+  <span class="pl-smi">mtry</span>  <span class="pl-smi">Accuracy</span>   <span class="pl-smi">Kappa</span>      <span class="pl-smi">Accuracy</span> <span class="pl-smi">SD</span>  <span class="pl-smi">Kappa</span> <span class="pl-smi">SD</span>   
+   <span class="pl-c1">2</span>    <span class="pl-c1">0.9911618</span>  <span class="pl-c1">0.9888175</span>  <span class="pl-c1">0.002509612</span>  <span class="pl-c1">0.003176747</span>
+  <span class="pl-c1">27</span>    <span class="pl-c1">0.9913587</span>  <span class="pl-c1">0.9890679</span>  <span class="pl-c1">0.002350200</span>  <span class="pl-c1">0.002973651</span>
+  <span class="pl-c1">52</span>    <span class="pl-c1">0.9849896</span>  <span class="pl-c1">0.9810093</span>  <span class="pl-c1">0.007077471</span>  <span class="pl-c1">0.008957960</span>
+
+<span class="pl-smi">Accuracy</span> <span class="pl-smi">was</span> <span class="pl-smi">used</span> <span class="pl-smi">to</span> <span class="pl-smi">select</span> <span class="pl-smi">the</span> <span class="pl-smi">optimal</span> <span class="pl-smi">model</span> <span class="pl-smi">using</span>  <span class="pl-smi">the</span> <span class="pl-smi">largest</span> <span class="pl-smi">value</span>.
+<span class="pl-smi">The</span> <span class="pl-smi">final</span> <span class="pl-smi">value</span> <span class="pl-smi">used</span> <span class="pl-k">for</span> <span class="pl-smi">the</span> <span class="pl-smi">model</span> <span class="pl-smi">was</span> <span class="pl-v">mtry</span> <span class="pl-k">=</span> <span class="pl-c1">27</span>. 
+<span class="pl-k">&gt;</span>
+<span class="pl-k">&gt;</span> <span class="pl-smi">model</span><span class="pl-k">$</span><span class="pl-smi">finalModel</span>
+
+<span class="pl-smi">Call</span><span class="pl-k">:</span>
+ randomForest(<span class="pl-v">x</span> <span class="pl-k">=</span> <span class="pl-smi">x</span>, <span class="pl-v">y</span> <span class="pl-k">=</span> <span class="pl-smi">y</span>, <span class="pl-v">mtry</span> <span class="pl-k">=</span> <span class="pl-smi">param</span><span class="pl-k">$</span><span class="pl-smi">mtry</span>, <span class="pl-v">numbers</span> <span class="pl-k">=</span> <span class="pl-c1">3</span>) 
+               <span class="pl-smi">Type</span> <span class="pl-smi">of</span> <span class="pl-smi">random</span> <span class="pl-smi">forest</span><span class="pl-k">:</span> <span class="pl-smi">classification</span>
+                     <span class="pl-smi">Number</span> <span class="pl-smi">of</span> <span class="pl-smi">trees</span><span class="pl-k">:</span> <span class="pl-c1">500</span>
+<span class="pl-smi">No</span>. <span class="pl-smi">of</span> <span class="pl-smi">variables</span> <span class="pl-smi">tried</span> <span class="pl-smi">at</span> <span class="pl-smi">each</span> <span class="pl-smi">split</span><span class="pl-k">:</span> <span class="pl-c1">27</span>
+
+        <span class="pl-smi">OOB</span> <span class="pl-smi">estimate</span> <span class="pl-smi">of</span>  <span class="pl-smi">error</span> <span class="pl-smi">rate</span><span class="pl-k">:</span> <span class="pl-c1">0.71</span>%
+<span class="pl-smi">Confusion</span> <span class="pl-smi">matrix</span><span class="pl-k">:</span>
+     <span class="pl-smi">A</span>    <span class="pl-smi">B</span>    <span class="pl-smi">C</span>    <span class="pl-smi">D</span>    <span class="pl-smi">E</span> <span class="pl-smi">class.error</span>
+<span class="pl-smi">A</span> <span class="pl-c1">3823</span>    <span class="pl-c1">4</span>    <span class="pl-c1">1</span>    <span class="pl-c1">0</span>    <span class="pl-c1">2</span> <span class="pl-c1">0.001827676</span>
+<span class="pl-smi">B</span>   <span class="pl-c1">17</span> <span class="pl-c1">2577</span>    <span class="pl-c1">9</span>    <span class="pl-c1">0</span>    <span class="pl-c1">0</span> <span class="pl-c1">0.009988475</span>
+<span class="pl-smi">C</span>    <span class="pl-c1">0</span>    <span class="pl-c1">9</span> <span class="pl-c1">2330</span>    <span class="pl-c1">8</span>    <span class="pl-c1">0</span> <span class="pl-c1">0.007243289</span>
+<span class="pl-smi">D</span>    <span class="pl-c1">0</span>    <span class="pl-c1">1</span>   <span class="pl-c1">31</span> <span class="pl-c1">2169</span>    <span class="pl-c1">2</span> <span class="pl-c1">0.015433500</span>
+<span class="pl-smi">E</span>    <span class="pl-c1">0</span>    <span class="pl-c1">0</span>    <span class="pl-c1">4</span>    <span class="pl-c1">8</span> <span class="pl-c1">2458</span> <span class="pl-c1">0.004858300</span></pre></div>
+
+<p>Confusion matrix:</p>
+
+<div class="highlight highlight-R"><pre><span class="pl-k">&gt;</span> <span class="pl-smi">cm</span>
+<span class="pl-smi">Confusion</span> <span class="pl-smi">Matrix</span> <span class="pl-smi">and</span> <span class="pl-smi">Statistics</span>
+
+          <span class="pl-smi">Reference</span>
+<span class="pl-smi">Prediction</span>    <span class="pl-smi">A</span>    <span class="pl-smi">B</span>    <span class="pl-smi">C</span>    <span class="pl-smi">D</span>    <span class="pl-smi">E</span>
+         <span class="pl-smi">A</span> <span class="pl-c1">1638</span>    <span class="pl-c1">6</span>    <span class="pl-c1">0</span>    <span class="pl-c1">0</span>    <span class="pl-c1">0</span>
+         <span class="pl-smi">B</span>    <span class="pl-c1">3</span> <span class="pl-c1">1098</span>    <span class="pl-c1">5</span>    <span class="pl-c1">0</span>    <span class="pl-c1">0</span>
+         <span class="pl-smi">C</span>    <span class="pl-c1">0</span>    <span class="pl-c1">5</span>  <span class="pl-c1">997</span>   <span class="pl-c1">22</span>    <span class="pl-c1">3</span>
+         <span class="pl-smi">D</span>    <span class="pl-c1">0</span>    <span class="pl-c1">6</span>    <span class="pl-c1">3</span>  <span class="pl-c1">922</span>    <span class="pl-c1">3</span>
+         <span class="pl-smi">E</span>    <span class="pl-c1">0</span>    <span class="pl-c1">0</span>    <span class="pl-c1">0</span>    <span class="pl-c1">0</span> <span class="pl-c1">1052</span>
+
+<span class="pl-smi">Overall</span> <span class="pl-smi">Statistics</span>
+
+               <span class="pl-smi">Accuracy</span> <span class="pl-k">:</span> <span class="pl-c1">0.9903</span>          
+                 <span class="pl-c1">95</span>% <span class="pl-smi">CI</span> <span class="pl-k">:</span> (<span class="pl-c1">0.9874</span>, <span class="pl-c1">0.9927</span>)
+    <span class="pl-smi">No</span> <span class="pl-smi">Information</span> <span class="pl-smi">Rate</span> <span class="pl-k">:</span> <span class="pl-c1">0.2847</span>          
+    <span class="pl-smi">P</span><span class="pl-k">-</span><span class="pl-smi">Value</span> [<span class="pl-smi">Acc</span> <span class="pl-k">&gt;</span> <span class="pl-smi">NIR</span>] <span class="pl-k">:</span> <span class="pl-k">&lt;</span> <span class="pl-c1">2.2e-16</span>       
+
+                  <span class="pl-smi">Kappa</span> <span class="pl-k">:</span> <span class="pl-c1">0.9877</span>          
+ <span class="pl-smi">Mcnemar</span><span class="pl-s"><span class="pl-pds">'</span>s Test P-Value : NA              </span>
+<span class="pl-s"></span>
+<span class="pl-s">Statistics by Class:</span>
+<span class="pl-s"></span>
+<span class="pl-s">                     Class: A Class: B Class: C Class: D Class: E</span>
+<span class="pl-s">Sensitivity            0.9982   0.9848   0.9920   0.9767   0.9943</span>
+<span class="pl-s">Specificity            0.9985   0.9983   0.9937   0.9975   1.0000</span>
+<span class="pl-s">Pos Pred Value         0.9964   0.9928   0.9708   0.9872   1.0000</span>
+<span class="pl-s">Neg Pred Value         0.9993   0.9963   0.9983   0.9954   0.9987</span>
+<span class="pl-s">Prevalence             0.2847   0.1935   0.1744   0.1638   0.1836</span>
+<span class="pl-s">Detection Rate         0.2842   0.1905   0.1730   0.1600   0.1825</span>
+<span class="pl-s">Detection Prevalence   0.2853   0.1919   0.1782   0.1621   0.1825</span>
+<span class="pl-s">Balanced Accuracy      0.9984   0.9915   0.9929   0.9871   0.9972</span></pre></div>
+
+<h3>
+<a id="other-algorithms" class="anchor" href="#other-algorithms" aria-hidden="true"><span class="octicon octicon-link"></span></a>Other algorithms</h3>
+
+<p>Later on I ran a bunch of tests with other models and parameters, e.g.:</p>
+
+<ul>
+<li>Random Forests with PCA preprocessing,</li>
+<li>R-Part with PCA</li>
+<li>LDA2 with PCA</li>
+<li>PAM with PCA</li>
+</ul>
+
+<p>But none of them yields results as good as the pure <code>rf</code>. So, I'll stick with that.</p>
+
+<h3>
+<a id="variable-importance" class="anchor" href="#variable-importance" aria-hidden="true"><span class="octicon octicon-link"></span></a>Variable importance</h3>
+
+<p>Variable importance plot shows that row_belt, pitch_forearm, yaw_belt and pitch_belt have the most impact on the predictions.</p>
+
+<p><img src="./varImp.png?raw=true" alt="variable importance"></p>
+
+<p>Out of pure curiousity, I ran the training and predictions taking into consideration only 7 the most influential features:</p>
+
+<div class="highlight highlight-R"><pre><span class="pl-smi">xs</span> <span class="pl-k">&lt;-</span> c(<span class="pl-s"><span class="pl-pds">"</span>roll_belt<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>pitch_forearm<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>yaw_belt<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>pitch_belt<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>roll_forearm<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>magnet_dumbbell_y<span class="pl-pds">"</span></span>, <span class="pl-s"><span class="pl-pds">"</span>magnet_dumbbell_z<span class="pl-pds">"</span></span>)</pre></div>
+
+<p>Interestingly, the accuracy on CV turned out to be 98%, which is 1% less than with all 52 features.</p>
+
+<h2>
+<a id="conclusion" class="anchor" href="#conclusion" aria-hidden="true"><span class="octicon octicon-link"></span></a>Conclusion</h2>
+
+<p>I seem to have got very decent results just by following the intuition and keeping things as simple as possible. At the beginning, when I was manually going through the data and analysing, I had a couple of ideas in the back of my head - e.g. including the rows with <code>new_window=yes</code> as a separate model, adding a fatigue feature (based on time passed since the beginning of excercising), but in the end I managed to get 99% estimated accuracy (based on cross validation) without actually implementing any of that.</p>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/pawelrychlik/coursera-pml">Coursera-pml</a> is maintained by <a href="https://github.com/pawelrychlik">pawelrychlik</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
+
